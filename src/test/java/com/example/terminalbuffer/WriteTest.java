@@ -129,16 +129,17 @@ class WriteTest {
     }
 
     // ---------------------------------------------------------------
-    // Bottom of screen - no scrolling yet
+    // Bottom of screen — scrolls on wrap
     // ---------------------------------------------------------------
 
     @Test
-    void writeAtLastRowClampsOnWrap() {
-        var buf = new TerminalBuffer(5, 3, 0);
+    void writeAtLastRowScrollsOnWrap() {
+        var buf = new TerminalBuffer(5, 3, 100);
         buf.setCursorPosition(3, 2);
         buf.write("XYZ");
-        assertEquals("   XY", buf.getLine(Area.SCREEN, 2));
-        assertEquals(0, buf.getCursorCol());
+        assertEquals("   XY", buf.getLine(Area.SCREEN, 1));
+        assertEquals("Z    ", buf.getLine(Area.SCREEN, 2));
+        assertEquals(1, buf.getCursorCol());
         assertEquals(2, buf.getCursorRow());
     }
 }
