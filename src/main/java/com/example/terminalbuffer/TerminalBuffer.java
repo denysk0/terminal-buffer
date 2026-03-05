@@ -21,6 +21,9 @@ public class TerminalBuffer {
     private final List<Cell[]> screen;
     private final List<Cell[]> scrollback;
 
+    private int cursorCol = 0;
+    private int cursorRow = 0;
+
     public TerminalBuffer(int width, int height, int scrollbackMax) {
         if (width <= 0) {
             throw new IllegalArgumentException("width must be positive, got: " + width);
@@ -48,6 +51,26 @@ public class TerminalBuffer {
     public int getWidth() { return width; }
     public int getHeight() { return height; }
     public int getScrollbackMax() { return scrollbackMax; }
+
+    public CursorPosition getCursorPosition() {
+        return new CursorPosition(cursorCol, cursorRow);
+    }
+
+    public int getCursorCol() { return cursorCol; }
+    public int getCursorRow() { return cursorRow; }
+
+    public void setCursorPosition(int col, int row) {
+        cursorCol = clampCol(col);
+        cursorRow = clampRow(row);
+    }
+
+    private void setCursorCol(int col) { cursorCol = clampCol(col); }
+    private void setCursorRow(int row) { cursorRow = clampRow(row); }
+
+    public void moveRight(int n) { checkNonNegative(n); cursorCol = clampCol(cursorCol + n); }
+    public void moveLeft(int n)  { checkNonNegative(n); cursorCol = clampCol(cursorCol - n); }
+    public void moveDown(int n)  { checkNonNegative(n); cursorRow = clampRow(cursorRow + n); }
+    public void moveUp(int n)    { checkNonNegative(n); cursorRow = clampRow(cursorRow - n); }
 
     /**
      * Returns the line as a string of {@code width} characters.
@@ -155,6 +178,17 @@ public class TerminalBuffer {
         for (Cell cell : row) {
             sb.append(cell.character());
         }
+    }
+
+    private int clampCol(int col)  { return clamp(col, 0, width - 1); }
+    private int clampRow(int row)  { return clamp(row, 0, height - 1); }
+
+    private static int clamp(int value, int min, int max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    private static void checkNonNegative(int n) {
+        if (n < 0) throw new IllegalArgumentException("n must be >= 0, got: " + n);
     }
 
     // Package-private access to internal state (for future)
