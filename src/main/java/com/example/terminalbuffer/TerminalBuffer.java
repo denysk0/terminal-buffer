@@ -3,6 +3,7 @@ package com.example.terminalbuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * A terminal text buffer consisting of a screen and a scrollback history.
@@ -79,6 +80,31 @@ public class TerminalBuffer {
 
     public void setCurrentAttributes(Attributes attributes) {
         currentAttributes = (attributes == null) ? Attributes.DEFAULT : attributes;
+    }
+
+    /**
+     * Writes text at the cursor position using current attributes,
+     * overwriting existing cells. Wraps to the next line when the end of a
+     * previous is reached. Stops at the bottom of the screen
+     */
+    public void write(String text) {
+        Objects.requireNonNull(text, "text must not be null");
+        if (text.indexOf('\n') >= 0 || text.indexOf('\r') >= 0) {
+            throw new IllegalArgumentException("text must not contain line separators (\\n or \\r)");
+        }
+        for (int i = 0; i < text.length(); i++) {
+            if (cursorRow >= height) break;
+            screen.get(cursorRow)[cursorCol] = new Cell(text.charAt(i), currentAttributes);
+            cursorCol++;
+            if (cursorCol >= width) {
+                cursorCol = 0;
+                cursorRow++;
+            }
+        }
+        if (cursorRow >= height) {
+            cursorRow = height - 1;
+            cursorCol = 0;
+        }
     }
 
     /**
