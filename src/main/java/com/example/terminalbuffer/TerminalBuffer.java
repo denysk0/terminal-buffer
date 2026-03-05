@@ -1,17 +1,16 @@
 package com.example.terminalbuffer;
 
-import java.util.ArrayList;
+import java.util.ArrayDeque;
 import java.util.Arrays;
-import java.util.List;
+import java.util.Deque;
 import java.util.Objects;
 
 /**
  * A terminal text buffer consisting of a screen and a scrollback history.
  *
  * <p>The screen is a grid of {@code width * height} {@link Cell}s.
- * Lines, which are being scrolled off the screen, are moved into the scrollback,
- * it's capped at {@code scrollbackMax}
- * (oldest lines are removed if the cap is reached).
+ * Lines scrolled off the top are moved into the scrollback,
+ * capped at {@code scrollbackMax} (oldest lines are removed if the cap is reached).
  */
 public class TerminalBuffer {
 
@@ -19,8 +18,8 @@ public class TerminalBuffer {
     private final int height;
     private final int scrollbackMax;
 
-    private final List<Cell[]> screen;
-    private final List<Cell[]> scrollback;
+    private final Deque<Cell[]> screen;
+    private final Deque<Cell[]> scrollback;
 
     private int cursorCol = 0;
     private int cursorRow = 0;
@@ -42,19 +41,26 @@ public class TerminalBuffer {
         this.height = height;
         this.scrollbackMax = scrollbackMax;
 
-        this.screen = new ArrayList<>(height);
-        this.scrollback = new ArrayList<>();
+        this.screen = new ArrayDeque<>(height);
+        this.scrollback = new ArrayDeque<>();
 
         for (int i = 0; i < height; i++) {
-            screen.add(emptyRow());
+            screen.addLast(emptyRow());
         }
     }
+
+    // ---------------------------------------------------------------
+    // Accessors
+    // ---------------------------------------------------------------
 
     public int getWidth() { return width; }
     public int getHeight() { return height; }
     public int getScrollbackMax() { return scrollbackMax; }
     public int getScrollbackSize() { return scrollback.size(); }
 
+    // ---------------------------------------------------------------
+    // Cursor
+    // ---------------------------------------------------------------
 
     public CursorPosition getCursorPosition() {
         return new CursorPosition(cursorCol, cursorRow);
@@ -68,20 +74,24 @@ public class TerminalBuffer {
         cursorRow = clampRow(row);
     }
 
-    private void setCursorCol(int col) { cursorCol = clampCol(col); }
-    private void setCursorRow(int row) { cursorRow = clampRow(row); }
-
     public void moveRight(int n) { checkNonNegative(n); cursorCol = clampCol(cursorCol + n); }
     public void moveLeft(int n)  { checkNonNegative(n); cursorCol = clampCol(cursorCol - n); }
     public void moveDown(int n)  { checkNonNegative(n); cursorRow = clampRow(cursorRow + n); }
     public void moveUp(int n)    { checkNonNegative(n); cursorRow = clampRow(cursorRow - n); }
 
+    // ---------------------------------------------------------------
+    // Current attributes
+    // ---------------------------------------------------------------
 
     public Attributes getCurrentAttributes() { return currentAttributes; }
 
     public void setCurrentAttributes(Attributes attributes) {
         currentAttributes = (attributes == null) ? Attributes.DEFAULT : attributes;
     }
+
+    // ---------------------------------------------------------------
+    // Writing
+    // ---------------------------------------------------------------
 
     /**
      * Writes text at the cursor position using current attributes,
@@ -94,7 +104,7 @@ public class TerminalBuffer {
             throw new IllegalArgumentException("text must not contain line separators (\\n or \\r)");
         }
         for (int i = 0; i < text.length(); i++) {
-            screen.get(cursorRow)[cursorCol] = new Cell(text.charAt(i), currentAttributes);
+            dequeGet(screen, cursorRow)[cursorCol] = new Cell(text.charAt(i), currentAttributes);
             advanceCursor();
         }
     }
@@ -112,15 +122,19 @@ public class TerminalBuffer {
     }
 
     private void scrollUp() {
-        Cell[] topRow = screen.remove(0);
-        screen.add(emptyRow());
+        Cell[] topRow = screen.removeFirst();
+        screen.addLast(emptyRow());
         if (scrollbackMax > 0) {
             if (scrollback.size() >= scrollbackMax) {
-                scrollback.remove(0);
+                scrollback.removeFirst();
             }
-            scrollback.add(topRow);
+            scrollback.addLast(topRow);
         }
     }
+
+    // ---------------------------------------------------------------
+    // Content access
+    // ---------------------------------------------------------------
 
     /**
      * Returns the line as a string of {@code width} characters.
@@ -150,22 +164,21 @@ public class TerminalBuffer {
         return getCell(area, row, col).attributes();
     }
 
-    /**
-     * Returns the screen as a string
-     * (rows joined by {@code '\n'}).
-     * */
+    /** Returns the screen as a string, rows joined by {@code '\n'}. */
     public String getScreenAsString() {
         StringBuilder sb = new StringBuilder(width * height + height);
-        for (int i = 0; i < height; i++) {
-            if (i > 0) sb.append('\n');
-            appendRow(sb, screen.get(i));
+        boolean first = true;
+        for (Cell[] row : screen) {
+            if (!first) sb.append('\n');
+            appendRow(sb, row);
+            first = false;
         }
         return sb.toString();
     }
 
     /**
-     * Returns the union of scrollback (oldest first) and screen {@link #getScreenAsString()}
-     * (rows joined by {@code '\n'}).
+     * Returns scrollback (oldest first) followed by screen, rows joined by {@code '\n'}.
+     * Identical to {@link #getScreenAsString()} when scrollback is empty.
      */
     public String getAllAsString() {
         if (scrollback.isEmpty()) {
@@ -181,7 +194,9 @@ public class TerminalBuffer {
         return sb.toString();
     }
 
-    // helpers
+    // ---------------------------------------------------------------
+    // Helpers
+    // ---------------------------------------------------------------
 
     private Cell[] emptyRow() {
         Cell[] row = new Cell[width];
@@ -193,13 +208,21 @@ public class TerminalBuffer {
         return switch (area) {
             case SCREEN -> {
                 checkScreenRow(row);
-                yield screen.get(row);
+                yield dequeGet(screen, row);
             }
             case SCROLLBACK -> {
                 checkScrollbackRow(row);
-                yield scrollback.get(row);
+                yield dequeGet(scrollback, row);
             }
         };
+    }
+
+    private static Cell[] dequeGet(Deque<Cell[]> deque, int index) {
+        int i = 0;
+        for (Cell[] row : deque) {
+            if (i++ == index) return row;
+        }
+        throw new AssertionError("index " + index + " out of range, size=" + (i));
     }
 
     private void checkScreenRow(int row) {
@@ -240,10 +263,4 @@ public class TerminalBuffer {
     private static void checkNonNegative(int n) {
         if (n < 0) throw new IllegalArgumentException("n must be >= 0, got: " + n);
     }
-
-    // Package-private access to internal state (for future)
-    /*
-    List<Cell[]> screen() { return screen; }
-    List<Cell[]> scrollback() { return scrollback; }
-     */
 }
