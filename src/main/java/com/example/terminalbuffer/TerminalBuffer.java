@@ -132,6 +132,20 @@ public class TerminalBuffer {
         }
     }
 
+    /** Replaces all screen rows with empty cells. Scrollback and cursor are unchanged. */
+    public void clearScreen() {
+        screen.clear();
+        for (int i = 0; i < height; i++) {
+            screen.addLast(emptyRow());
+        }
+    }
+
+    /** Clears the screen and discards all scrollback. Cursor is unchanged. */
+    public void clearAll() {
+        clearScreen();
+        scrollback.clear();
+    }
+
     /**
      * Shifts the screen up by one line, moving the top row into scrollback
      * (subject to {@code scrollbackMax}) and appending an empty row at the bottom.
