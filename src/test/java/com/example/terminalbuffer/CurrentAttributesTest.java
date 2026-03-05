@@ -15,7 +15,7 @@ class CurrentAttributesTest {
     @Test
     void setCurrentAttributesUpdatesState() {
         var buf = new TerminalBuffer(80, 24, 0);
-        var attrs = new Attributes(TerminalColor.RED, TerminalColor.BLUE, Style.BOLD.mask());
+        var attrs = new Attributes(TerminalColor.RED, TerminalColor.BLUE, 0).withStyle(Style.BOLD);
         buf.setCurrentAttributes(attrs);
         assertEquals(attrs, buf.getCurrentAttributes());
     }
