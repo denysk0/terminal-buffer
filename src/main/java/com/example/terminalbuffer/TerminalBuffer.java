@@ -53,6 +53,7 @@ public class TerminalBuffer {
     public int getWidth() { return width; }
     public int getHeight() { return height; }
     public int getScrollbackMax() { return scrollbackMax; }
+    public int getScrollbackSize() { return scrollback.size(); }
 
 
     public CursorPosition getCursorPosition() {
@@ -84,8 +85,8 @@ public class TerminalBuffer {
 
     /**
      * Writes text at the cursor position using current attributes,
-     * overwriting existing cells. Wraps to the next line when the end of a
-     * previous is reached. Stops at the bottom of the screen
+     * overwriting existing cells. Wraps to the next line on line end;
+     * scrolls up when the bottom of the screen is exceeded.
      */
     public void write(String text) {
         Objects.requireNonNull(text, "text must not be null");
@@ -93,17 +94,31 @@ public class TerminalBuffer {
             throw new IllegalArgumentException("text must not contain line separators (\\n or \\r)");
         }
         for (int i = 0; i < text.length(); i++) {
-            if (cursorRow >= height) break;
             screen.get(cursorRow)[cursorCol] = new Cell(text.charAt(i), currentAttributes);
-            cursorCol++;
-            if (cursorCol >= width) {
-                cursorCol = 0;
-                cursorRow++;
-            }
+            advanceCursor();
         }
-        if (cursorRow >= height) {
-            cursorRow = height - 1;
+    }
+
+    private void advanceCursor() {
+        cursorCol++;
+        if (cursorCol == width) {
             cursorCol = 0;
+            cursorRow++;
+        }
+        if (cursorRow == height) {
+            scrollUp();
+            cursorRow = height - 1;
+        }
+    }
+
+    private void scrollUp() {
+        Cell[] topRow = screen.remove(0);
+        screen.add(emptyRow());
+        if (scrollbackMax > 0) {
+            if (scrollback.size() >= scrollbackMax) {
+                scrollback.remove(0);
+            }
+            scrollback.add(topRow);
         }
     }
 
