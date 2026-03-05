@@ -8,6 +8,11 @@ public record Attributes(TerminalColor foreground, TerminalColor background, int
     public static final Attributes DEFAULT =
             new Attributes(TerminalColor.DEFAULT, TerminalColor.DEFAULT, 0);
 
+    public Attributes {
+        foreground = (foreground == null) ? TerminalColor.DEFAULT : foreground;
+        background = (background == null) ? TerminalColor.DEFAULT : background;
+    }
+
     public boolean hasStyle(Style style) {
         return (styleMask & style.mask()) != 0;
     }

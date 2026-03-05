@@ -110,7 +110,7 @@ public class TerminalBuffer {
 
     // helpers
 
-    Cell[] emptyRow() {
+    private Cell[] emptyRow() {
         Cell[] row = new Cell[width];
         Arrays.fill(row, Cell.EMPTY);
         return row;

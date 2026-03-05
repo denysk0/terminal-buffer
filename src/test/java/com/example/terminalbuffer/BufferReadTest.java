@@ -223,4 +223,20 @@ class BufferReadTest {
     void defaultAttributesHaveNoUnderlineStyle() {
         assertFalse(Attributes.DEFAULT.hasStyle(Style.UNDERLINE));
     }
+
+    // ---------------------------------------------------------------
+    // Attributes null-safety
+    // ---------------------------------------------------------------
+
+    @Test
+    void attributesNullForegroundFallsBackToDefault() {
+        var attrs = new Attributes(null, TerminalColor.RED, 0);
+        assertEquals(TerminalColor.DEFAULT, attrs.foreground());
+    }
+
+    @Test
+    void attributesNullBackgroundFallsBackToDefault() {
+        var attrs = new Attributes(TerminalColor.RED, null, 0);
+        assertEquals(TerminalColor.DEFAULT, attrs.background());
+    }
 }

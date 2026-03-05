@@ -7,5 +7,5 @@ package com.example.terminalbuffer;
  */
 public record Cell(char character, Attributes attributes) {
 
-    static final Cell EMPTY = new Cell(' ', Attributes.DEFAULT);
+    public static final Cell EMPTY = new Cell(' ', Attributes.DEFAULT);
 }
