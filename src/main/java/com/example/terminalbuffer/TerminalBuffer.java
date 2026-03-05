@@ -132,6 +132,15 @@ public class TerminalBuffer {
         }
     }
 
+    /**
+     * Fills the entire current row with {@code ch} and current attributes.
+     */
+    public void fillLine(char ch) {
+        Cell[] row = dequeGet(screen, cursorRow);
+        Cell cell = new Cell(ch, currentAttributes);
+        Arrays.fill(row, cell);
+    }
+
     // ---------------------------------------------------------------
     // Content access
     // ---------------------------------------------------------------
