@@ -23,6 +23,7 @@ public class TerminalBuffer {
 
     private int cursorCol = 0;
     private int cursorRow = 0;
+    private Attributes currentAttributes = Attributes.DEFAULT;
 
     public TerminalBuffer(int width, int height, int scrollbackMax) {
         if (width <= 0) {
@@ -52,6 +53,7 @@ public class TerminalBuffer {
     public int getHeight() { return height; }
     public int getScrollbackMax() { return scrollbackMax; }
 
+
     public CursorPosition getCursorPosition() {
         return new CursorPosition(cursorCol, cursorRow);
     }
@@ -71,6 +73,13 @@ public class TerminalBuffer {
     public void moveLeft(int n)  { checkNonNegative(n); cursorCol = clampCol(cursorCol - n); }
     public void moveDown(int n)  { checkNonNegative(n); cursorRow = clampRow(cursorRow + n); }
     public void moveUp(int n)    { checkNonNegative(n); cursorRow = clampRow(cursorRow - n); }
+
+
+    public Attributes getCurrentAttributes() { return currentAttributes; }
+
+    public void setCurrentAttributes(Attributes attributes) {
+        currentAttributes = (attributes == null) ? Attributes.DEFAULT : attributes;
+    }
 
     /**
      * Returns the line as a string of {@code width} characters.
