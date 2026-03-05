@@ -133,6 +133,14 @@ public class TerminalBuffer {
     }
 
     /**
+     * Shifts the screen up by one line, moving the top row into scrollback
+     * (subject to {@code scrollbackMax}) and appending an empty row at the bottom.
+     */
+    public void insertEmptyLineAtBottom() {
+        scrollUp();
+    }
+
+    /**
      * Fills the entire current row with {@code ch} and current attributes.
      */
     public void fillLine(char ch) {
