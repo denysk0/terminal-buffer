@@ -109,6 +109,64 @@ public class TerminalBuffer {
         }
     }
 
+    /**
+     * Inserts text at the cursor position, shifting existing content right.
+     * Overflow from the right end of a row cascades to the next row.
+     * If the cascade reaches the bottom of the screen, the screen scrolls up.
+     * Moves the cursor past the inserted text, wrapping at the line end;
+     * cursor remains within screen bounds.
+     */
+    public void insert(String text) {
+        Objects.requireNonNull(text, "text must not be null");
+        if (text.isEmpty()) return;
+        if (text.indexOf('\n') >= 0 || text.indexOf('\r') >= 0) {
+            throw new IllegalArgumentException("text must not contain line separators (\\n or \\r)");
+        }
+
+        Cell[] spill = new Cell[text.length()];
+        for (int i = 0; i < text.length(); i++) {
+            spill[i] = new Cell(text.charAt(i), currentAttributes);
+        }
+
+        int col = cursorCol;
+        int row = cursorRow;
+        int scrolled = 0;
+
+        while (true) {
+            Cell[] currentRow = dequeGet(screen, row);
+            int n = spill.length;
+
+            Cell[] combined = new Cell[width + n];
+            System.arraycopy(currentRow, 0, combined, 0, col);
+            System.arraycopy(spill, 0, combined, col, n);
+            System.arraycopy(currentRow, col, combined, col + n, width - col);
+
+            System.arraycopy(combined, 0, currentRow, 0, width);
+            spill = Arrays.copyOfRange(combined, width, width + n);
+
+            if (isAllEmpty(spill)) break;
+
+            col = 0;
+            row++;
+            if (row == height) {
+                scrollUp();
+                scrolled++;
+                row = height - 1;
+            }
+        }
+
+        int end = cursorRow * width + cursorCol + text.length();
+        cursorRow = clampRow(end / width - scrolled);
+        cursorCol = end % width;
+    }
+
+    private static boolean isAllEmpty(Cell[] cells) {
+        for (Cell cell : cells) {
+            if (!Cell.EMPTY.equals(cell)) return false;
+        }
+        return true;
+    }
+
     private void advanceCursor() {
         cursorCol++;
         if (cursorCol == width) {
