@@ -14,8 +14,8 @@ import java.util.Objects;
  */
 public class TerminalBuffer {
 
-    private final int width;
-    private final int height;
+    private int width;
+    private int height;
     private final int scrollbackMax;
 
     private final Deque<Cell[]> screen;
@@ -202,6 +202,62 @@ public class TerminalBuffer {
     public void clearAll() {
         clearScreen();
         scrollback.clear();
+    }
+
+    /**
+     * Resizes the buffer to the given width and height.
+     *
+     * <p>Height change: rows added at the bottom (grow) or top rows moved to scrollback (shrink).
+     * Width change: all rows (screen and scrollback) are padded or trimmed on the right.
+     * The cursor is clamped to remain within the new bounds.
+     */
+    public void resize(int newWidth, int newHeight) {
+        if (newWidth <= 0) {
+            throw new IllegalArgumentException("width must be positive, got: " + newWidth);
+        }
+        if (newHeight <= 0) {
+            throw new IllegalArgumentException("height must be positive, got: " + newHeight);
+        }
+
+        if (newHeight < height) {
+            int rowsToRemove = height - newHeight;
+            for (int i = 0; i < rowsToRemove; i++) {
+                Cell[] topRow = screen.removeFirst();
+                if (scrollbackMax > 0) {
+                    if (scrollback.size() >= scrollbackMax) scrollback.removeFirst();
+                    scrollback.addLast(topRow);
+                }
+            }
+        } else {
+            for (int i = height; i < newHeight; i++) {
+                screen.addLast(emptyRow());
+            }
+        }
+
+        if (newWidth != width) {
+            resizeAllRows(screen, newWidth);
+            resizeAllRows(scrollback, newWidth);
+        }
+
+        width = newWidth;
+        height = newHeight;
+
+        cursorCol = clamp(cursorCol, 0, newWidth - 1);
+        cursorRow = clamp(cursorRow, 0, newHeight - 1);
+    }
+
+    private void resizeAllRows(Deque<Cell[]> rows, int newWidth) {
+        int size = rows.size();
+        for (int i = 0; i < size; i++) {
+            Cell[] old = rows.removeFirst();
+            Cell[] resized = new Cell[newWidth];
+            int copy = Math.min(old.length, newWidth);
+            System.arraycopy(old, 0, resized, 0, copy);
+            if (newWidth > old.length) {
+                Arrays.fill(resized, old.length, newWidth, Cell.EMPTY);
+            }
+            rows.addLast(resized);
+        }
     }
 
     /**
