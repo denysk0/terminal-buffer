@@ -13,6 +13,14 @@ A **terminal text buffer** — the core data structure that terminal emulators u
 ./gradlew test
 ```
 
+## Testing & Coverage
+
+- Tests: 130 passed (JUnit 5)
+- Coverage (JaCoCo):
+    - Line: 98.5% (194/197)
+    - Branch: 94.9% (93/98)
+    - Method: 98.3% (59/60)
+
 ## CI
 
 GitHub Actions runs the test suite against Java 21 and Java 25 on every push
@@ -130,4 +138,4 @@ movement by N cells rejects negative values.
 
 * More terminal control features: handling escape sequences(`\n`, `\r`), tab stops
 
-* Performance improvements: replace deque row access with a ring buffer for O(1) indexing, reduce allocations in `insert()`
+* Performance improvements: replace deque row access with a ring buffer for O(1) indexing, reduce allocations in `insert()` (reuse temp arrays)
